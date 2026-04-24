@@ -23,7 +23,34 @@ type PersistedState = {
   progressByItemId: Record<string, ItemProgress>
 }
 
-const STORAGE_KEY = "blind-review-home:v2"
+const STORAGE_KEY = "blind-review-home:v3"
+
+function normalizeModelKey(value: unknown): ModelKey {
+  if (value === "claude_sonnet_4_6" || value === "claude_sonnet_4.6" || value === "claude_sonnet_4" || value === "claude sonnet 4") {
+    return "claude sonnet 4"
+  }
+  if (value === "skillrl" || value === "our_method" || value === "gpt_4o") {
+    return value
+  }
+  return "gpt_4o"
+}
+
+function normalizeProgressByItemId(progressByItemId: Record<string, ItemProgress> | undefined) {
+  if (!progressByItemId) return {}
+  const next: Record<string, ItemProgress> = {}
+  for (const [itemId, progress] of Object.entries(progressByItemId)) {
+    next[itemId] = {
+      ...progress,
+      mapping: {
+        A: normalizeModelKey(progress?.mapping?.A),
+        B: normalizeModelKey(progress?.mapping?.B),
+        C: normalizeModelKey(progress?.mapping?.C),
+        D: normalizeModelKey(progress?.mapping?.D),
+      },
+    }
+  }
+  return next
+}
 
 function shuffle<T>(items: T[]): T[] {
   const arr = [...items]
@@ -61,7 +88,11 @@ function safeLoadPersisted(): PersistedState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    return JSON.parse(raw) as PersistedState
+    const parsed = JSON.parse(raw) as PersistedState
+    return {
+      ...parsed,
+      progressByItemId: normalizeProgressByItemId(parsed.progressByItemId),
+    }
   } catch {
     return null
   }
