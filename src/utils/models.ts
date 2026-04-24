@@ -1,17 +1,17 @@
-export type ModelKey = "gpt_4o" | "skillrl" | "our_method" | "claude_sonnet_4_6"
+export type ModelKey = "gpt_4o" | "skillrl" | "our_method" | "claude sonnet 4"
 
 export const MODEL_KEYS: ModelKey[] = [
   "skillrl",
   "our_method",
   "gpt_4o",
-  "claude_sonnet_4_6",
+  "claude sonnet 4",
 ]
 
 export const MODEL_LABELS: Record<ModelKey, string> = {
   gpt_4o: "gpt-4o",
   skillrl: "skillrl",
   our_method: "our method",
-  claude_sonnet_4_6: "claude sonnet 4.6",
+  "claude sonnet 4": "claude sonnet 4",
 }
 
 export type BlindLabel = "A" | "B" | "C" | "D"

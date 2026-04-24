@@ -81,6 +81,19 @@ function parseOneRecord(record: RawRecord, fallbackIndex: number): EvalItem {
   const answersZh: Partial<Record<ModelKey, string>> = {}
   const translatedAnswers = asObject(record.final_answers_zh) || {}
 
+  if (modelOutputs["claude_sonnet_4_6"] != null && modelOutputs["claude sonnet 4"] == null) {
+    modelOutputs["claude sonnet 4"] = modelOutputs["claude_sonnet_4_6"]
+  }
+  if (modelOutputs["claude_sonnet_4.6"] != null && modelOutputs["claude sonnet 4"] == null) {
+    modelOutputs["claude sonnet 4"] = modelOutputs["claude_sonnet_4.6"]
+  }
+  if (translatedAnswers["claude_sonnet_4_6"] != null && translatedAnswers["claude sonnet 4"] == null) {
+    translatedAnswers["claude sonnet 4"] = translatedAnswers["claude_sonnet_4_6"]
+  }
+  if (translatedAnswers["claude_sonnet_4.6"] != null && translatedAnswers["claude sonnet 4"] == null) {
+    translatedAnswers["claude sonnet 4"] = translatedAnswers["claude_sonnet_4.6"]
+  }
+
   for (const key of MODEL_KEYS) {
     answers[key] = extractLastAssistantText(modelOutputs[key])
     if (typeof translatedAnswers[key] === "string" && translatedAnswers[key]) {
