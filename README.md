@@ -1,25 +1,5 @@
 # React + TypeScript + Vite
 
-## Deploy to GitHub Pages
-
-1. Push this repo to GitHub.
-2. In GitHub: `Settings` → `Pages` → `Build and deployment` → select `GitHub Actions`.
-3. Ensure your default branch is `main` or `master`.
-4. Push to the default branch to trigger the workflow.
-5. After workflow finishes, your site will be available at:
-   - `https://<your-username>.github.io/<repo-name>/`
-
-Notes:
-- This project uses HashRouter so refresh/deep-link works on GitHub Pages.
-- Static asset base path is set via `BASE_PATH` in the workflow.
-
-## Local Development
-
-```bash
-npm install
-npm run dev
-```
-
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

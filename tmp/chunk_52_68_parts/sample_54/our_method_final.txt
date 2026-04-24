@@ -1,0 +1,21 @@
+Everything has been successfully set up for you, John! Here's the confirmation:
+
+---
+
+### ✅ Home Setup Complete
+
+#### ❄️ Air Conditioning (Temperature & Humidity)
+- **Temperature:** ✅ Set to **20°C**
+- **Humidity:** ✅ Set to **35%**
+
+#### 💡 Lights — All ON
+| Location | Brightness | Color | Status |
+|---|---|---|---|
+| 🛋️ Living Room | Medium | White | ✅ ON |
+| 🍳 Kitchen | Medium | White | ✅ ON |
+| 🛏️ Bedroom | Medium | White | ✅ ON |
+| 🍽️ Dining Room | Medium | White | ✅ ON |
+
+---
+
+Your home is all set and comfortable for your arrival! 🏠 If you'd like to adjust anything — like brightness, temperature, or specific room settings — just let me know. 😊

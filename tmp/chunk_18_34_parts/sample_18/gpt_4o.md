@@ -1,0 +1,1 @@
+Let me find parks or similar places in Chicago where you can go for a walk tonight.

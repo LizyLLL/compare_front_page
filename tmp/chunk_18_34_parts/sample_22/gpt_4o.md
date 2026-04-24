@@ -1,0 +1,1 @@
+Would you like me to fetch news from a specific category, such as literature, arts, culture, or technology, or should I provide the latest hot news?

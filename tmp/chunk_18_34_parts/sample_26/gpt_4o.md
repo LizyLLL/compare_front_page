@@ -1,0 +1,1 @@
+Could you let me know if you'd like restaurant suggestions in Seattle or another city? Additionally, do you have a preference for cuisine or budget for lunch?

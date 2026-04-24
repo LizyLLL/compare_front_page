@@ -1,0 +1,18 @@
+Here is the current weather in San Francisco for today, September 8, 2024:
+
+- **Condition**: Partly cloudy  
+- **Temperature**:  
+  - Maximum: 20.4°C (68.7°F)  
+  - Minimum: 13.3°C (55.9°F)  
+  - Average: 16.2°C (61.2°F)  
+- **Wind**: Up to 7.8 mph (12.6 km/h)  
+- **Precipitation**: 0.01 mm (very light, no significant rain expected)  
+- **Humidity**: 79%  
+- **Chance of rain**: 45%  
+- **Sunrise**: 6:46 AM  
+- **Sunset**: 7:28 PM  
+- **Moon phase**: Waxing Crescent (23% illumination)  
+
+Since the weather is partly cloudy with a moderate chance of rain, it might be a good idea to pack a light jacket or umbrella for outdoor activities like golf or sailing.  
+
+If you'd like, I can also check today’s events in your calendar or suggest a restaurant or attraction in San Francisco based on your preferences. Let me know how I can assist further!

@@ -1,0 +1,1 @@
+Could you let me know if you'd like restaurant suggestions in Seattle or another city? Additionally, do you have a preference for cuisine, budget, or dining style? For example, you often enjoy traditional American or local cuisine, with a budget of $20 to $50, and a casual dining style. Let me know if this applies or if you'd like to explore something different!

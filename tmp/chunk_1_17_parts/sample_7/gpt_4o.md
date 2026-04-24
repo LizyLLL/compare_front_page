@@ -1,0 +1,3 @@
+Taking a break is essential for maintaining productivity and mental clarity. For someone with your active lifestyle and work demands, a break of **20-30 minutes** is ideal. This duration allows you to recharge without disrupting your workflow or focus.
+
+Would you like me to set a reminder for a 30-minute break now? If so, I can include a motivational message or relaxation tip to enhance your break experience.

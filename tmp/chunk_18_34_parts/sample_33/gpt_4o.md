@@ -1,0 +1,1 @@
+To show tomorrow's plan, I will retrieve the events scheduled for tomorrow. Let me check your calendar.

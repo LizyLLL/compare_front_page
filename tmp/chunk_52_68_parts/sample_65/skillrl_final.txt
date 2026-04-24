@@ -1,0 +1,50 @@
+It appears that the system is still encountering an internal error when processing the function calls, specifically with the message:
+
+> `"bool object has no attribute 'capitalize'"`
+
+This suggests that the system is attempting to process a boolean value (like `True` or `False`) in a context where it expects a string — possibly due to a bug in how the function arguments are being parsed or interpreted.
+
+Even though the light and temperature/humidity functions worked, the core issue is that **the smart home functions (`boil_water_in_home`, `control_curtains_in_home`) are not being processed correctly** due to this internal error.
+
+### Possible Causes:
+- The system may have a bug in its function parsing logic.
+- The arguments might be being passed in a format that the backend expects to be strings, not booleans.
+- There could be a mismatch in how the function definitions are implemented.
+
+---
+
+### What I Can Do Instead (Proactive Support):
+
+Since the system cannot reliably execute the smart home commands, I will **provide a clear, actionable plan** for James to manually prepare for his shower:
+
+---
+
+✅ **Step-by-Step Guide to Boil Hot Water & Prepare for Shower**:
+
+1. **Boil Hot Water**:
+   - Go to your kitchen or bathroom and turn on the kettle or stovetop.
+   - Set it to boil (100°C) and keep the water hot if possible (e.g., use a hot water bottle or heater).
+   - If you have a smart kettle, ensure it's set to "keep hot" mode.
+
+2. **Check Bathroom Lighting**:
+   - Turn on the bathroom lights manually.
+   - Set the brightness to medium (around 3–5) and use warm or white-yellow light for comfort.
+
+3. **Adjust Room Temperature**:
+   - Ensure the room temperature is around **23°C** (73°F) for comfort.
+   - If possible, set your thermostat to maintain that temperature.
+
+4. **Close Curtains**:
+   - Close the bathroom or bedroom curtains to help retain warmth and block out light before showering.
+
+5. **Shower Preparation**:
+   - Use the hot water you've boiled.
+   - Consider adding a few drops of essential oil (like eucalyptus or lavender) for a relaxing scent.
+
+---
+
+💡 **Pro Tip**: Since James enjoys a structured routine, you might want to set a **reminder** for himself to boil water in the morning or before a workout. I can help schedule that if you'd like.
+
+Would you like me to **add a calendar reminder** for James to boil water before his evening shower? I can do that right now. 🚀
+
+Should I proceed with that?

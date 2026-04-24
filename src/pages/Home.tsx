@@ -1,106 +1,240 @@
-import { useMemo, useRef, useState } from "react"
-import { FileUp, FolderOpen, RefreshCcw, Trash2 } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { FileUp, Languages, RefreshCcw, Trash2, UserRound } from "lucide-react"
 import AnswerCard from "@/components/AnswerCard"
 import Modal from "@/components/Modal"
 import { cn } from "@/lib/utils"
-import { useEvalStore } from "@/store/evalStore"
-import { parseDatasetFromJson } from "@/utils/dataset"
-import { prettyPrintUnknown } from "@/utils/format"
-import { SAMPLE_DATASET } from "@/utils/sampleDataset"
-import { BLIND_LABELS, DIMENSIONS, MODEL_LABELS, type BlindLabel, type ModelKey } from "@/utils/models"
+import { parseDatasetFromJson, type EvalDataset, type EvalItem } from "@/utils/dataset"
 import { downloadTextFile } from "@/utils/download"
-import { exportBundleToCsvText, exportBundleToJsonText, toExportBundle } from "@/utils/exporters"
+import { prettyPrintUnknown } from "@/utils/format"
+import { BLIND_LABELS, DIMENSIONS, MODEL_KEYS, MODEL_LABELS, type BlindLabel, type DimensionKey, type ModelKey, type Score } from "@/utils/models"
+import { exportBundleToCsvText, exportBundleToJsonText, toExportBundle, type RatedAnswer, type RatedItem } from "@/utils/exporters"
+
+type ItemProgress = {
+  mapping: Record<BlindLabel, ModelKey>
+  ratings: Record<BlindLabel, RatedAnswer>
+  itemNote: string
+}
+
+type PersistedState = {
+  datasetId: string
+  currentIndex: number
+  revealModelNames: boolean
+  showChinese: boolean
+  progressByItemId: Record<string, ItemProgress>
+}
+
+const STORAGE_KEY = "blind-review-home:v2"
+
+function shuffle<T>(items: T[]): T[] {
+  const arr = [...items]
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const tmp = arr[i]
+    arr[i] = arr[j]
+    arr[j] = tmp
+  }
+  return arr
+}
+
+function makeDefaultRatings(): Record<BlindLabel, RatedAnswer> {
+  return BLIND_LABELS.reduce((acc, label) => {
+    acc[label] = { scores: {}, note: "" }
+    return acc
+  }, {} as Record<BlindLabel, RatedAnswer>)
+}
+
+function makeMapping(): Record<BlindLabel, ModelKey> {
+  const shuffled = shuffle(MODEL_KEYS)
+  return {
+    A: shuffled[0],
+    B: shuffled[1],
+    C: shuffled[2],
+    D: shuffled[3],
+  }
+}
+
+function makeDefaultProgress(): ItemProgress {
+  return { mapping: makeMapping(), ratings: makeDefaultRatings(), itemNote: "" }
+}
+
+function safeLoadPersisted(): PersistedState | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as PersistedState
+  } catch {
+    return null
+  }
+}
+
+function isItemComplete(progress?: ItemProgress | null) {
+  if (!progress) return false
+  for (const label of BLIND_LABELS) {
+    for (const dim of DIMENSIONS) {
+      if (!progress.ratings[label]?.scores?.[dim.key]) return false
+    }
+  }
+  return true
+}
+
+function buildBaseProgress(dataset: EvalDataset) {
+  return dataset.items.reduce((acc, item) => {
+    acc[item.id] = makeDefaultProgress()
+    return acc
+  }, {} as Record<string, ItemProgress>)
+}
+
+function getDisplayedText(showChinese: boolean, zh: string | undefined, en: string) {
+  return showChinese && zh ? zh : en
+}
 
 export default function Home() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
-  const [error, setError] = useState<string>("")
-  const [importing, setImporting] = useState(false)
+  const [dataset, setDataset] = useState<EvalDataset | null>(null)
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [progressByItemId, setProgressByItemId] = useState<Record<string, ItemProgress>>({})
+  const [revealModelNames, setRevealModelNames] = useState(false)
+  const [showChinese, setShowChinese] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [error, setError] = useState("")
 
-  const dataset = useEvalStore((s) => s.dataset)
-  const currentIndex = useEvalStore((s) => s.currentIndex)
-  const revealModelNames = useEvalStore((s) => s.revealModelNames)
-  const loadDataset = useEvalStore((s) => s.loadDataset)
-  const clearProgress = useEvalStore((s) => s.clearProgress)
-  const setCurrentIndex = useEvalStore((s) => s.setCurrentIndex)
-  const toggleReveal = useEvalStore((s) => s.toggleReveal)
-  const getItem = useEvalStore((s) => s.getItem)
-  const progressByItemId = useEvalStore((s) => s.progressByItemId)
-  const buildRatedItems = useEvalStore((s) => s.buildRatedItems)
-  const rate = useEvalStore((s) => s.rate)
-  const setAnswerNote = useEvalStore((s) => s.setAnswerNote)
-  const setItemNote = useEvalStore((s) => s.setItemNote)
-
-  const item = getItem()
+  const item = dataset?.items[currentIndex] || null
   const progress = item ? progressByItemId[item.id] : null
 
-  const isProgressComplete = (p: typeof progress) => {
-    if (!p) return false
-    for (const label of BLIND_LABELS) {
-      const scores = p.ratings[label]?.scores
-      if (!scores) return false
-      for (const d of DIMENSIONS) {
-        if (!scores[d.key]) return false
-      }
+  useEffect(() => {
+    if (!dataset) return
+    const persisted: PersistedState = {
+      datasetId: dataset.datasetId,
+      currentIndex,
+      revealModelNames,
+      showChinese,
+      progressByItemId,
     }
-    return true
-  }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted))
+  }, [dataset, currentIndex, revealModelNames, showChinese, progressByItemId])
 
-  const total = dataset?.items.length || 0
   const completedCount = useMemo(() => {
     if (!dataset) return 0
-    return dataset.items.reduce((acc, it) => acc + (isProgressComplete(progressByItemId[it.id]) ? 1 : 0), 0)
+    return dataset.items.reduce((acc, current) => acc + (isItemComplete(progressByItemId[current.id]) ? 1 : 0), 0)
   }, [dataset, progressByItemId])
 
-  const completionRate = total ? Math.round((completedCount / total) * 100) : 0
+  const completionRate = dataset?.items.length ? Math.round((completedCount / dataset.items.length) * 100) : 0
+
+  const loadDataset = (next: EvalDataset) => {
+    const baseProgress = buildBaseProgress(next)
+    const persisted = safeLoadPersisted()
+    const canRestore = persisted?.datasetId === next.datasetId
+
+    setDataset(next)
+    setCurrentIndex(canRestore ? Math.min(persisted.currentIndex || 0, Math.max(next.items.length - 1, 0)) : 0)
+    setRevealModelNames(canRestore ? Boolean(persisted.revealModelNames) : false)
+    setShowChinese(canRestore ? Boolean(persisted.showChinese) && next.hasTranslations : Boolean(next.hasTranslations))
+    setProgressByItemId(canRestore ? { ...baseProgress, ...persisted.progressByItemId } : baseProgress)
+  }
 
   const onPickFile = () => fileInputRef.current?.click()
 
-  const onFileChange = async (f: File | null) => {
-    if (!f) return
-    setError("")
+  const onFileChange = async (file: File | null) => {
+    if (!file) return
     setImporting(true)
+    setError("")
     try {
-      const text = await f.text()
+      const text = await file.text()
       const json = JSON.parse(text)
-      const ds = parseDatasetFromJson(json, f.name)
-      loadDataset(ds, { preferRestore: true })
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "加载失败"
-      setError(msg)
+      loadDataset(parseDatasetFromJson(json, file.name))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "导入失败")
     } finally {
       setImporting(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
     }
   }
 
-  const goPrev = () => setCurrentIndex(currentIndex - 1)
-  const goNext = () => setCurrentIndex(currentIndex + 1)
+  const clearAll = () => {
+    setDataset(null)
+    setCurrentIndex(0)
+    setProgressByItemId({})
+    setRevealModelNames(false)
+    setShowChinese(false)
+    localStorage.removeItem(STORAGE_KEY)
+  }
+
+  const updateProgress = (itemId: string, updater: (current: ItemProgress) => ItemProgress) => {
+    setProgressByItemId((current) => {
+      const previous = current[itemId] || makeDefaultProgress()
+      return { ...current, [itemId]: updater(previous) }
+    })
+  }
+
+  const rate = (itemId: string, label: BlindLabel, dim: DimensionKey, score: Score) => {
+    updateProgress(itemId, (current) => ({
+      ...current,
+      ratings: {
+        ...current.ratings,
+        [label]: {
+          ...current.ratings[label],
+          scores: { ...current.ratings[label].scores, [dim]: score },
+        },
+      },
+    }))
+  }
+
+  const setAnswerNote = (itemId: string, label: BlindLabel, note: string) => {
+    updateProgress(itemId, (current) => ({
+      ...current,
+      ratings: {
+        ...current.ratings,
+        [label]: { ...current.ratings[label], note },
+      },
+    }))
+  }
+
+  const setItemNote = (itemId: string, note: string) => {
+    updateProgress(itemId, (current) => ({ ...current, itemNote: note }))
+  }
+
+  const buildRatedItems = (): RatedItem[] => {
+    if (!dataset) return []
+    return dataset.items.map((current) => {
+      const currentProgress = progressByItemId[current.id] || makeDefaultProgress()
+      return {
+        itemId: current.id,
+        sampleId: current.sampleId,
+        blindMapping: currentProgress.mapping,
+        question: current.question,
+        userStatus: current.userStatus,
+        ratings: currentProgress.ratings,
+        itemNote: currentProgress.itemNote,
+      }
+    })
+  }
 
   const exportJson = () => {
     if (!dataset) return
+    const fileName = `${dataset.sourceName || "ratings"}_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`
     const bundle = toExportBundle(dataset, buildRatedItems())
-    const name = `${dataset.datasetName || "dataset"}_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`
-    downloadTextFile(name, exportBundleToJsonText(bundle), "application/json")
+    downloadTextFile(fileName, exportBundleToJsonText(bundle), "application/json")
   }
 
   const exportCsv = () => {
     if (!dataset) return
+    const fileName = `${dataset.sourceName || "ratings"}_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.csv`
     const bundle = toExportBundle(dataset, buildRatedItems())
-    const name = `${dataset.datasetName || "dataset"}_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.csv`
-    downloadTextFile(name, exportBundleToCsvText(bundle), "text/csv")
+    downloadTextFile(fileName, exportBundleToCsvText(bundle), "text/csv")
   }
 
-  const header = (
-    <div className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+  const renderHeader = (
+    <div className="sticky top-0 z-20 border-b border-zinc-200 bg-white/90 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-zinc-900">模型盲评对比工具</div>
+          <div className="text-sm font-semibold text-zinc-900">多模型盲评标注工具</div>
           <div className="truncate text-xs text-zinc-500">
-            {dataset ? `${dataset.datasetName || "未命名数据集"} · ${dataset.sourceName || ""}` : "加载本地 JSON 列表开始评测"}
+            {dataset ? `${dataset.sourceName || "已加载数据"} · 共 ${dataset.items.length} 组` : "加载本地 JSON 后开始评审"}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex flex-wrap items-center gap-2">
           <input
             ref={fileInputRef}
             type="file"
@@ -108,6 +242,7 @@ export default function Home() {
             className="hidden"
             onChange={(e) => onFileChange(e.target.files?.[0] || null)}
           />
+
           <button
             type="button"
             onClick={onPickFile}
@@ -118,58 +253,44 @@ export default function Home() {
             )}
           >
             <FileUp className="h-4 w-4" />
-            加载 JSON
+            {importing ? "导入中…" : "导入 JSON"}
           </button>
+
           <button
             type="button"
-            onClick={() => {
-              setError("")
-              loadDataset(SAMPLE_DATASET, { preferRestore: false })
-            }}
-            disabled={importing}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700",
-              importing ? "opacity-60" : "hover:bg-zinc-50"
-            )}
-          >
-            <FolderOpen className="h-4 w-4" />
-            加载示例
-          </button>
-          <button
-            type="button"
-            onClick={toggleReveal}
-            disabled={importing}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium",
-              revealModelNames ? "border-blue-200 bg-blue-50 text-blue-700" : "border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-              importing ? "opacity-60" : ""
-            )}
+            onClick={() => setRevealModelNames((current) => !current)}
+            disabled={importing || !dataset}
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
           >
             <RefreshCcw className="h-4 w-4" />
             {revealModelNames ? "已显示模型名" : "显示模型名"}
           </button>
+
           <button
             type="button"
-            onClick={clearProgress}
-            disabled={importing}
+            onClick={() => setShowChinese((current) => !current)}
+            disabled={!dataset?.hasTranslations}
             className={cn(
-              "inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700",
-              importing ? "opacity-60" : "hover:bg-zinc-50"
+              "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50",
+              showChinese ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
             )}
+          >
+            <Languages className="h-4 w-4" />
+            {showChinese ? "当前中文" : "切换中文"}
+          </button>
+
+          <button
+            type="button"
+            onClick={clearAll}
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
           >
             <Trash2 className="h-4 w-4" />
             清空
           </button>
-          {importing ? (
-            <div className="ml-2 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-              <span className="h-3 w-3 animate-spin rounded-full border-2 border-blue-200 border-t-blue-700" />
-              导入中…
-            </div>
-          ) : null}
         </div>
       </div>
       {error ? (
-        <div className="mx-auto max-w-6xl px-4 pb-3">
+        <div className="mx-auto max-w-7xl px-4 pb-3">
           <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
         </div>
       ) : null}
@@ -179,14 +300,14 @@ export default function Home() {
   if (!dataset || !item || !progress) {
     return (
       <div className="min-h-screen bg-zinc-50">
-        {header}
-        <div className="mx-auto max-w-3xl px-4 py-10">
+        {renderHeader}
+        <div className="mx-auto max-w-4xl px-4 py-12">
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <div className="text-lg font-semibold text-zinc-900">开始一次盲评</div>
-            <div className="mt-2 text-sm text-zinc-600">
-              选择一个本地 JSON 列表文件（或加载示例），页面会随机打乱四个模型回答为 A/B/C/D，按三维度 1–5 评分并导出。
+            <div className="text-lg font-semibold text-zinc-900">开始一次人工标注</div>
+            <div className="mt-2 text-sm leading-6 text-zinc-600">
+              导入 `mocked_record_list.json` 或 `mocked_record_list_translated.json`。如果导入的是带中文字段版本，页面右上角会自动启用中英切换按钮。
             </div>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6">
               <button
                 type="button"
                 onClick={onPickFile}
@@ -197,23 +318,8 @@ export default function Home() {
                 )}
               >
                 <FileUp className="h-4 w-4" />
-                {importing ? "导入中…" : "加载 JSON"}
+                {importing ? "导入中…" : "选择 JSON 文件"}
               </button>
-              <button
-                type="button"
-                onClick={() => loadDataset(SAMPLE_DATASET, { preferRestore: false })}
-                disabled={importing}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700",
-                  importing ? "opacity-60" : "hover:bg-zinc-50"
-                )}
-              >
-                <FolderOpen className="h-4 w-4" />
-                加载示例
-              </button>
-            </div>
-            <div className="mt-6 rounded-lg bg-zinc-50 p-3 text-xs text-zinc-600">
-              兼容格式：数组、{"{ items: [...] }"} 或单条记录对象。每条记录需包含 model_outputs，且包含 gpt_4o/skillrl/our_method/claude_sonnet_4_6。
             </div>
           </div>
         </div>
@@ -221,79 +327,67 @@ export default function Home() {
     )
   }
 
-  const itemComplete = isProgressComplete(progress)
+  const displayedQuestion = getDisplayedText(showChinese, item.questionZh, item.question)
+  const displayedStatus = showChinese && item.userStatusZh != null ? item.userStatusZh : item.userStatus
+  const displayedProfile = showChinese && item.userProfileZh != null ? item.userProfileZh : item.userProfile
+  const itemComplete = isItemComplete(progress)
+  const total = dataset.items.length
 
-  const answersByLabel: Array<{ label: BlindLabel; modelKey: ModelKey; text: string }> = BLIND_LABELS.map((label) => {
+  const answersByLabel = BLIND_LABELS.map((label) => {
     const modelKey = progress.mapping[label]
-    return { label, modelKey, text: item.answers[modelKey] }
+    const text = showChinese && item.answersZh[modelKey] ? item.answersZh[modelKey] || "" : item.answers[modelKey]
+    return { label, modelKey, text }
   })
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      {header}
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1.2fr]">
+      {renderHeader}
+
+      <div className="mx-auto max-w-7xl px-4 py-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1.3fr]">
           <div className="space-y-4">
             <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm font-semibold text-zinc-900">第 {currentIndex + 1} / {total} 组</div>
-                  <div className="text-xs text-zinc-500">已完成 {completedCount} 组（{completionRate}%）</div>
+                  <div className="text-sm font-semibold text-zinc-900">
+                    第 {currentIndex + 1} / {total} 组
+                  </div>
+                  <div className="mt-1 text-xs text-zinc-500">
+                    sample_id: {item.sampleId || "-"} · 已完成 {completedCount} 组（{completionRate}%）
+                  </div>
                 </div>
-                <div className={cn("rounded-lg px-2 py-1 text-xs font-medium", itemComplete ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}> 
+                <div className={cn("rounded-lg px-2 py-1 text-xs font-medium", itemComplete ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}>
                   {itemComplete ? "本组已完成" : "本组未完成"}
                 </div>
               </div>
 
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
+              <div className="mt-4 h-2 overflow-hidden rounded-full bg-zinc-100">
                 <div className="h-full bg-blue-600" style={{ width: `${completionRate}%` }} />
               </div>
 
               <div className="mt-4 flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={goPrev}
+                  onClick={() => setCurrentIndex((current) => Math.max(0, current - 1))}
                   disabled={currentIndex === 0}
-                  className={cn(
-                    "rounded-lg border px-3 py-2 text-sm font-medium",
-                    currentIndex === 0 ? "border-zinc-100 text-zinc-400" : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
-                  )}
+                  className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-40"
                 >
                   上一组
                 </button>
                 <button
                   type="button"
-                  onClick={goNext}
+                  onClick={() => setCurrentIndex((current) => Math.min(total - 1, current + 1))}
                   disabled={currentIndex >= total - 1}
-                  className={cn(
-                    "rounded-lg border px-3 py-2 text-sm font-medium",
-                    currentIndex >= total - 1 ? "border-zinc-100 text-zinc-400" : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
-                  )}
+                  className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-40"
                 >
                   下一组
                 </button>
-                <div className="ml-auto flex items-center gap-2">
-                  <div className="text-xs text-zinc-500">跳转</div>
-                  <input
-                    type="number"
-                    min={1}
-                    max={total}
-                    defaultValue={currentIndex + 1}
-                    onKeyDown={(e) => {
-                      if (e.key !== "Enter") return
-                      const v = Number((e.target as HTMLInputElement).value)
-                      if (!Number.isFinite(v)) return
-                      setCurrentIndex(v - 1)
-                    }}
-                    className="w-20 rounded-lg border border-zinc-200 bg-white px-2 py-2 text-sm outline-none focus:border-blue-500"
-                  />
-                </div>
               </div>
             </div>
 
             <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
               <div className="text-sm font-semibold text-zinc-900">问题</div>
-              <div className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-zinc-900">{item.question || "（空问题）"}</div>
+              <div className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-zinc-900">{displayedQuestion || "（空问题）"}</div>
             </div>
 
             <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
@@ -302,87 +396,67 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setProfileOpen(true)}
-                  className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                 >
+                  <UserRound className="h-4 w-4" />
                   查看用户档案
                 </button>
               </div>
-              <div className="mt-2 max-h-[200px] overflow-y-auto rounded-lg bg-zinc-50 p-3 text-xs text-zinc-700">
-                <div className="whitespace-pre-wrap break-words font-mono">{prettyPrintUnknown(item.userStatus)}</div>
-              </div>
+              <pre className="mt-2 max-h-[220px] overflow-y-auto rounded-lg bg-zinc-50 p-3 text-xs leading-6 text-zinc-700">{prettyPrintUnknown(displayedStatus)}</pre>
             </div>
 
             <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
               <div className="text-sm font-semibold text-zinc-900">整组备注（可选）</div>
               <textarea
+                rows={3}
                 value={progress.itemNote}
                 onChange={(e) => setItemNote(item.id, e.target.value)}
-                rows={3}
-                className="mt-2 w-full resize-none rounded-lg border border-zinc-200 bg-white p-2 text-sm outline-none focus:border-blue-500"
-                placeholder="比如：整体偏好、明显错误、或你认为需要记录的评审理由"
+                className="mt-2 w-full resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                placeholder="记录这一组整体的判断依据"
               />
             </div>
 
             <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-semibold text-zinc-900">导出</div>
-                <div className="text-xs text-zinc-500">已完成 {completedCount} / {total}</div>
+                <div className="text-sm font-semibold text-zinc-900">导出评分</div>
+                <div className="text-xs text-zinc-500">导出包含 sample_id 与 A-D 对应模型映射</div>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={exportJson}
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                >
+                <button type="button" onClick={exportJson} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
                   导出 JSON
                 </button>
-                <button
-                  type="button"
-                  onClick={exportCsv}
-                  className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-                >
+                <button type="button" onClick={exportCsv} className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
                   导出 CSV
                 </button>
               </div>
-              <div className="mt-2 text-xs text-zinc-500">导出会包含盲评映射关系（A-D 对应的原始模型键）。</div>
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
               <div className="text-sm font-semibold text-zinc-900">盲评回答区</div>
-              <div className="mt-1 text-xs text-zinc-500">默认隐藏模型名并随机顺序展示为 A/B/C/D，可切换显示模型名用于复核。</div>
+              <div className="mt-1 text-xs text-zinc-500">默认隐藏模型名；如果加载了翻译版 JSON，可以使用右上角按钮切换为中文展示。</div>
             </div>
 
-            {answersByLabel.map((a) => {
-              const rated = progress.ratings[a.label]
-              const modelName = MODEL_LABELS[a.modelKey] || a.modelKey
-              return (
-                <AnswerCard
-                  key={a.label}
-                  label={a.label}
-                  modelName={modelName}
-                  revealModelNames={revealModelNames}
-                  answer={a.text}
-                  scores={rated.scores}
-                  note={rated.note}
-                  onScore={(dim, score) => rate(item.id, a.label, dim, score)}
-                  onNote={(note) => setAnswerNote(item.id, a.label, note)}
-                />
-              )
-            })}
+            {answersByLabel.map((answer) => (
+              <AnswerCard
+                key={answer.label}
+                label={answer.label}
+                modelName={MODEL_LABELS[answer.modelKey]}
+                revealModelNames={revealModelNames}
+                answer={answer.text}
+                scores={progress.ratings[answer.label].scores}
+                note={progress.ratings[answer.label].note}
+                onScore={(dim, score) => rate(item.id, answer.label, dim, score)}
+                onNote={(note) => setAnswerNote(item.id, answer.label, note)}
+              />
+            ))}
           </div>
         </div>
       </div>
 
-      <Modal
-        open={profileOpen}
-        title="用户档案（user_profile）"
-        onClose={() => setProfileOpen(false)}
-      >
-        <div className="rounded-lg bg-zinc-50 p-3 text-xs text-zinc-700">
-          <div className="whitespace-pre-wrap break-words font-mono">{prettyPrintUnknown(item.userProfile)}</div>
-        </div>
+      <Modal open={profileOpen} onClose={() => setProfileOpen(false)} title="用户档案">
+        <pre className="rounded-lg bg-zinc-50 p-3 text-xs leading-6 text-zinc-700">{prettyPrintUnknown(displayedProfile)}</pre>
       </Modal>
     </div>
   )

@@ -1,0 +1,24 @@
+Both tasks have been successfully set up, James! Here's your home status summary:
+
+---
+
+### ✅ Everything is Ready for Your Return Home:
+
+#### 🫖 Hot Water (Kettle)
+- **Status:** ✅ Boiling at **100°C**
+- **Keep Warm:** Yes — will stay hot whenever you need it.
+
+#### 🛁 Bathtub
+- **Status:** ✅ Filling up now
+- **Water Level:** 80% (your preferred level)
+- **Temperature:** 39°C (your preferred temperature)
+- **Keep Warm:** Yes — will maintain the perfect temperature until you arrive.
+
+---
+
+You're all set for a relaxing evening after a long day at the office! 🏡 Would you also like me to:
+- 🎵 **Play some relaxing Jazz or Classical music** when you get home?
+- 💡 **Set up the lighting** in the bathroom and bedroom to your preferred brightness?
+- 🌡️ **Adjust the home temperature** to your preferred 23°C?
+
+Just let me know! 😊

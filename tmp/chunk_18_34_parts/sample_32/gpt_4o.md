@@ -1,0 +1,1 @@
+Would you like me to fetch the latest hot news or news from specific categories like world, business, health, or science, which align with your preferences?

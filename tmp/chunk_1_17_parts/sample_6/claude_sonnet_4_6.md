@@ -1,0 +1,5 @@
+A 30-minute break is recommended for you to rest, as it aligns well with your current health and mood trends—your recent mood has been consistently calm, and your activity levels are moderate. Taking a short break during the afternoon (e.g., between 1:30 PM and 2:00 PM) helps maintain mental clarity and prevents burnout, especially given your high workload as a cardiologist.
+
+The reminder to take a 30-minute break has been successfully set in your calendar. You can adjust the time if needed based on your schedule or energy levels. 
+
+For further wellness support, consider pairing your break with a short walk in a nearby park or listening to instrumental jazz or classical music to enhance relaxation. Let me know if you'd like assistance with setting up a music playlist or finding a nearby nature spot!

@@ -15,6 +15,7 @@ export const MODEL_LABELS: Record<ModelKey, string> = {
 }
 
 export type BlindLabel = "A" | "B" | "C" | "D"
+
 export const BLIND_LABELS: BlindLabel[] = ["A", "B", "C", "D"]
 
 export type DimensionKey = "q_relevance" | "user_relevance" | "readability"
@@ -23,6 +24,5 @@ export type Score = 1 | 2 | 3 | 4 | 5
 export const DIMENSIONS: Array<{ key: DimensionKey; label: string; hint: string }> = [
   { key: "q_relevance", label: "回答与问题的相关性", hint: "是否解决了问题" },
   { key: "user_relevance", label: "回答和用户的相关性", hint: "个性化程度" },
-  { key: "readability", label: "回答的可读性", hint: "阅读是否舒服" },
+  { key: "readability", label: "回答的可读性", hint: "阅读起来是否舒服" },
 ]
-

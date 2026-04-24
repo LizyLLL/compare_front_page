@@ -1,0 +1,1 @@
+Since you're currently in Chicago, I'll look for restaurants that align with your preferences for Italian, local cuisine, and vegetarian options, with a casual and intimate dining style. Let me find some suggestions for you.

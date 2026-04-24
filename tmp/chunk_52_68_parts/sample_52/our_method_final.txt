@@ -1,0 +1,43 @@
+All items have been successfully added to your cart! Here's the complete summary:
+
+---
+
+## 🛒 Shopping Cart — Complete! ✅
+
+### 🥦 Vegetables (8 items)
+| Item | Quantity |
+|------|----------|
+| 🍅 Tomatoes | 6 pcs |
+| 🥔 Potatoes | 6 pcs |
+| 🧅 Onions | 4 pcs |
+| 🥕 Carrots | 6 pcs |
+| 🥦 Broccoli | 2 heads |
+| 🧄 Garlic | 2 bulbs |
+| 🫑 Bell Peppers | 4 pcs |
+| 🌽 Corn | 4 ears |
+
+### 🍎 Fruits (4 items)
+| Item | Quantity |
+|------|----------|
+| 🍎 Apples | 6 pcs |
+| 🍌 Bananas | 6 pcs |
+| 🍊 Oranges | 6 pcs |
+| 🍇 Grapes | 1 bag (~500g) |
+
+---
+
+### 📝 Quick Notes:
+- **All 12 items** have been added to your cart successfully!
+- These portions are well-suited for **3 people** for roughly a week's worth of cooking.
+- For the best freshness and value, consider picking these up at your local **Walmart or neighborhood grocery store** — they tend to have great deals on fresh produce.
+
+---
+
+### 💡 Suggestions:
+Since you enjoy hearty home-cooked meals and BBQ, here are a few meal ideas with what you've got:
+- 🥩 **Grilled steak with corn & bell peppers** — perfect weekend BBQ combo!
+- 🍲 **Beef stew with potatoes, carrots & onions** — a classic comfort meal.
+- 🥗 **Fresh tomato & garlic side salad** — quick and easy.
+- 🍌 **Banana & apple snack pack** — great for work breaks on the job site.
+
+Would you like me to also add any **proteins (meat, eggs)**, **pantry staples**, or anything else to complete your weekly grocery haul? 🛒
